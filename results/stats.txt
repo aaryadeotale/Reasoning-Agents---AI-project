@@ -1,0 +1,12 @@
+cf33: rescued 107, lost 0, sign-test p=1.23e-32; rescued-but-wrong 15; correct->not 0
+cf66: rescued 149, lost 0, sign-test p=2.80e-45; rescued-but-wrong 19; correct->not 0
+cf100: rescued 183, lost 0, sign-test p=1.63e-55; rescued-but-wrong 27; correct->not 0
+cf33 by CF role: Author 0.753 (n=174), Critic 0.667 (n=165), Reviewer 0.739 (n=161)
+control: live tokens 7647, sandbox 0
+cf33: live tokens 6263, sandbox 10808
+cf66: live tokens 6071, sandbox 17464
+cf100: live tokens 5783, sandbox 21885
+control+: live tokens 9471, sandbox 0
+fidelity 0.4: cf100 conv 0.814 acc 0.724, cf33 conv 0.664 acc 0.602
+fidelity 0.6: cf100 conv 0.838 acc 0.750, cf33 conv 0.686 acc 0.628
+fidelity 1.0: cf100 conv 0.868 acc 0.790, cf33 conv 0.738 acc 0.676

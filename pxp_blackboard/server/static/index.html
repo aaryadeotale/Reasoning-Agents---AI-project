@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PXP Blackboard · Live</title>
+<style>
+:root{--bg:#060a14;--panel:rgba(17,25,45,.82);--line:rgba(148,163,184,.16);--fg:#e8edf8;--mut:#8a96b0;--accent:#7c83ff;
+ --PROPOSE:#4f9dff;--RATIFY:#34d399;--REVISE:#fbbf24;--REFUTE:#fb923c;--REJECT:#f43f5e}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;color:var(--fg);font:14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;
+ background:radial-gradient(1100px 650px at 45% -10%,#18235a 0%,transparent 62%),radial-gradient(900px 600px at 100% 100%,#241046 0%,transparent 58%),var(--bg)}
+.app{display:grid;height:100vh;gap:12px;padding:12px;grid-template-columns:290px minmax(0,1fr) 360px;
+ grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"head head head" "left stage right" "foot foot foot"}
+@media(max-width:1100px){body{overflow:auto}.app{height:auto;grid-template-columns:1fr;grid-template-rows:auto;grid-template-areas:"head" "stage" "left" "right" "foot"}
+ #stage{height:70vh}.panel.scroll{max-height:60vh}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+header{grid-area:head;display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:10px 16px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.logo{width:26px;height:26px;border-radius:8px;background:conic-gradient(from 200deg,#4f9dff,#34d399,#fbbf24,#f43f5e,#4f9dff);box-shadow:0 0 18px rgba(124,131,255,.55)}
+.brand b{font-size:16px}.brand small{color:var(--mut);display:block;font-size:11px;margin-top:-2px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,input[type=text],input[type=url]{background:#0d1530;color:var(--fg);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;outline:none}
+select:focus,input:focus{border-color:var(--accent)}
+button{font:inherit;color:var(--fg);background:#16204a;border:1px solid var(--line);border-radius:9px;padding:7px 12px;cursor:pointer;transition:.15s}
+button:hover:not(:disabled){background:#1e2b63;border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:default}
+button.primary{background:linear-gradient(135deg,#6d5dfc,#4f9dff);border:0;font-weight:600;box-shadow:0 4px 18px rgba(99,102,241,.45)}
+button.primary:hover:not(:disabled){filter:brightness(1.12);background:linear-gradient(135deg,#6d5dfc,#4f9dff)}
+.pill{padding:5px 12px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid var(--line);background:#0d1530;color:var(--mut);white-space:nowrap}
+.pill.running{color:#7dd3fc;border-color:#2b6cb0}.pill.ok{color:#34d399;border-color:#1f7a5a}.pill.bad{color:#fb7185;border-color:#9f1239}
+.pill.running::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#38bdf8;margin-right:6px;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.2}}
+#adv{display:none;width:100%;gap:8px;flex-wrap:wrap;align-items:center;padding-top:4px}
+#adv.show{display:flex}#adv input{min-width:180px}
+.scroll{overflow:auto}
+/* ---------- left: agents ---------- */
+#left{grid-area:left;padding:12px;display:flex;flex-direction:column;gap:10px}
+h3{margin:0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.scn{font-size:12px;color:var(--mut);padding:8px 10px;border-radius:10px;background:rgba(13,21,48,.7);border:1px solid var(--line)}
+.scn b{color:var(--fg);display:block;font-size:13px}
+.agent{display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(13,21,48,.7);border:1px solid var(--line);transition:.25s}
+.agent.thinking{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 22px rgba(124,131,255,.35)}
+.av{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:21px;flex:none;position:relative}
+.agent.thinking .av::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px dashed var(--accent);animation:spin 1.6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.agent .meta{min-width:0;flex:1}.agent b{display:block}
+.agent small{color:var(--mut);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status{font-size:12px;margin-top:2px;color:var(--mut)}.status.t{color:#a5b4fc}
+.chip{display:inline-block;padding:1px 8px;border-radius:99px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:#0b1020}
+.chip.retry{background:#334155;color:#cbd5e1}
+.dots span{display:inline-block;width:4px;height:4px;border-radius:50%;background:#a5b4fc;margin-right:2px;animation:bounce 1s infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-4px)}}
+.legend{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:11px;color:var(--mut)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+/* ---------- stage ---------- */
+#stage{grid-area:stage;position:relative;overflow:hidden;min-height:340px}
+#g{position:absolute;inset:0;width:100%;height:100%}
+#vig{position:absolute;inset:0;pointer-events:none;border-radius:16px;transition:box-shadow .5s;box-shadow:inset 0 0 0 rgba(244,63,94,0)}
+#vig.warn{animation:pulse 1.4s infinite}
+#vig.dead{box-shadow:inset 0 0 120px rgba(244,63,94,.55);animation:pulse 0.8s infinite}
+#vig.good{box-shadow:inset 0 0 110px rgba(52,211,153,.28)}
+@keyframes pulse{0%,100%{box-shadow:inset 0 0 40px rgba(244,63,94,.18)}50%{box-shadow:inset 0 0 120px rgba(244,63,94,.5)}}
+#banner{position:absolute;left:50%;top:14px;transform:translate(-50%,-90px);transition:transform .45s cubic-bezier(.2,1.2,.3,1);
+ padding:9px 20px;border-radius:12px;font-weight:700;letter-spacing:.02em;text-align:center;max-width:90%;z-index:3}
+#banner.show{transform:translate(-50%,0)}
+#banner small{display:block;font-weight:500;opacity:.85;font-size:12px}
+#banner.warn{background:rgba(120,53,15,.92);border:1px solid #fb923c;color:#fed7aa}
+#banner.dead{background:rgba(127,29,29,.95);border:1px solid #f43f5e;color:#fecdd3;animation:shake .5s 2}
+#banner.good{background:rgba(6,78,59,.95);border:1px solid #34d399;color:#a7f3d0}
+@keyframes shake{25%{transform:translate(-52%,0)}75%{transform:translate(-48%,0)}}
+#problem{position:absolute;left:14px;bottom:12px;right:14px;font-size:12.5px;color:var(--mut);pointer-events:none;text-shadow:0 1px 4px #000}
+#problem b{color:var(--fg)}
+#tip{position:fixed;pointer-events:none;z-index:50;max-width:300px;padding:8px 10px;border-radius:10px;background:#0b1226;border:1px solid var(--line);font-size:12px;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.edge{stroke:rgba(148,163,184,.4);stroke-width:1.6;fill:none}
+.beam{stroke:#a5b4fc;stroke-width:1.6;stroke-dasharray:4 6;fill:none;animation:dash .7s linear infinite;opacity:.85}
+@keyframes dash{to{stroke-dashoffset:-20}}
+.node{cursor:pointer}.node text{font-weight:700;pointer-events:none}
+.sel{stroke:#fff;stroke-width:2.5}
+#empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--mut);pointer-events:none}
+#empty div{max-width:340px}#empty b{display:block;color:var(--fg);font-size:18px;margin-bottom:6px}
+/* ---------- right ---------- */
+#right{grid-area:right;display:flex;flex-direction:column;min-height:0;padding:12px;gap:10px}
+.meters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.meter{padding:8px 10px;border-radius:10px;background:rgba(13,21,48,.7);border:1px solid var(--line)}
+.meter small{color:var(--mut);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+.meter b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.streak{display:flex;gap:4px;margin-top:5px}.streak i{flex:1;height:7px;border-radius:4px;background:#1e293b;transition:.3s}
+.streak i.on{background:var(--REFUTE)}.streak i.hot{background:var(--REJECT);box-shadow:0 0 8px var(--REJECT)}
+#feed{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;padding-right:2px}
+.msg{padding:9px 10px;border-radius:12px;background:rgba(13,21,48,.75);border:1px solid var(--line);border-left:4px solid var(--c);cursor:pointer}
+.msg.new{animation:slide .45s ease-out}.msg.sel{outline:1px solid #fff}
+@keyframes slide{from{opacity:0;transform:translateY(12px)}}
+.msg .top{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut)}
+.msg .top b{color:var(--fg)}.msg .pred{font-weight:600;margin-top:3px}.msg .why{color:#b6c0d8;font-size:12.5px}
+.msg .tag{background:var(--c)}
+#final{padding:10px;border-radius:12px;font-size:12.5px;display:none;background:rgba(13,21,48,.8);border:1px solid var(--line)}
+#final.show{display:block}
+/* ---------- footer: scrubber ---------- */
+footer{grid-area:foot;padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.scrub{flex:1;min-width:220px;position:relative}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+#ticks{display:flex;gap:3px;margin-top:3px;height:8px}#ticks i{flex:1;max-width:22px;border-radius:3px;opacity:.9}
+.live{font-size:11px;font-weight:700;padding:5px 10px;border-radius:99px}
+.live.on{background:#14532d;color:#86efac}.live.off{background:#334155;color:#cbd5e1;cursor:pointer}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+#cf{position:absolute;right:12px;bottom:12px;width:min(430px,46%);max-height:62%;overflow:auto;display:none;z-index:6;
+ background:rgba(20,14,48,.94);border:1px solid #8b7bff;border-radius:14px;padding:10px 12px;font-size:12px;box-shadow:0 0 24px rgba(124,131,255,.35)}
+#cf.on{display:block}#cf h4{margin:0 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#b9b3ff}
+#cf .tl{border:1px solid var(--line);border-radius:10px;padding:6px 8px;margin:6px 0;opacity:.75}
+#cf .tl.best{opacity:1;border-color:#34d399;box-shadow:0 0 10px rgba(52,211,153,.3)}
+#cf .chip{display:inline-block;padding:1px 6px;border-radius:8px;margin:2px 3px 0 0;font-size:10px;color:#0b1020;font-weight:700}
+#cf .alt{color:var(--fg);margin:2px 0}#cf .meta{color:var(--mut);font-size:11px}
+</style>
+</head>
+<body>
+<div class="app">
+ <header class="panel">
+  <div class="brand"><div class="logo"></div><div><b>PXP Blackboard</b><small>Two-way intelligibility · live panel view</small></div></div>
+  <div class="controls">
+   <select id="scenario" title="Scenario"></select>
+   <select id="speed" title="Playback speed of the simulated models">
+     <option value="0.5">0.5× slow</option><option value="1" selected>1× live</option><option value="2">2× fast</option><option value="5">5× turbo</option>
+   </select>
+   <label style="color:var(--mut);font-size:12px"><input type="checkbox" id="flaky"> flaky model</label>
+   <button id="start" class="primary">▶ Start session</button>
+   <button id="gear" title="Server / local model settings">⚙</button>
+   <span id="pill" class="pill">idle</span>
+  </div>
+  <div id="adv">
+   <label style="color:var(--mut);font-size:12px">model source
+     <select id="src"><option value="mock-demo">Scripted demo</option><option value="openai">Local model (OpenAI-compatible)</option></select></label>
+   <input id="base" type="url" placeholder="http://localhost:11434/v1" value="http://localhost:11434/v1">
+   <input id="model" type="text" placeholder="model e.g. qwen2.5:7b" value="qwen2.5:7b">
+   <input id="problem-in" type="text" placeholder="problem (optional override)" style="flex:1;min-width:220px">
+   <label style="color:var(--mut);font-size:12px">server <input id="server" type="text" size="24"></label>
+  </div>
+ </header>
+
+ <aside id="left" class="panel scroll">
+  <h3>Scenario</h3><div class="scn" id="scn">Pick a scenario and press Start.</div>
+  <h3>Agents</h3><div id="agents"></div>
+  <h3>Legend</h3><div class="legend" id="legend"></div>
+ </aside>
+
+ <section id="stage" class="panel">
+  <svg id="g" viewBox="-480 -330 960 660" preserveAspectRatio="xMidYMid meet"></svg>
+  <div id="vig"></div>
+  <div id="banner"></div>
+  <div id="cf" title="Click to hide" onclick="this.className=''"></div>
+  <div id="empty"><div><b>Nothing on the blackboard yet</b>Choose a scenario and press <i>Start session</i> to watch the agents work.</div></div>
+  <div id="problem"></div>
+ </section>
+
+ <aside id="right" class="panel">
+  <div class="meters">
+   <div class="meter"><small>Messages</small><b id="m-msgs">0</b></div>
+   <div class="meter"><small>Elapsed</small><b id="m-time">0.0s</b></div>
+   <div class="meter"><small>Tokens</small><b id="m-tok">0</b></div>
+   <div class="meter"><small>Format OK first try</small><b id="m-fmt">–</b></div>
+   <div class="meter" style="grid-column:1/3"><small>Negative streak (impasse at <span id="thr">4</span>)</small><b id="m-streak">0</b><div class="streak" id="streak"></div></div>
+  </div>
+  <div id="final"></div>
+  <h3>Live transcript</h3>
+  <div id="feed"></div>
+ </aside>
+
+ <footer class="panel">
+  <button id="first" title="Back to start">⏮</button><button id="prev" title="Step back">◀</button>
+  <button id="play" title="Replay from here">▶ Replay</button>
+  <button id="next" title="Step forward">▶</button><button id="last" title="Latest">⏭</button>
+  <div class="scrub"><input id="range" type="range" min="0" max="0" value="0"><div id="ticks"></div></div>
+  <span id="pos" style="color:var(--mut);font-variant-numeric:tabular-nums;min-width:90px">0 / 0</span>
+  <span id="live" class="live off">LIVE</span>
+ </footer>
+</div>
+<div id="tip"></div>
+
+<script>
+const COLORS={PROPOSE:"#4f9dff",RATIFY:"#34d399",REVISE:"#fbbf24",REFUTE:"#fb923c",REJECT:"#f43f5e"};
+const ICONS={data_analyst:"📊",skeptic:"🧐",generalist:"🧭",clinician:"🩺",pharmacologist:"💊",energy_analyst:"⚡",automotive_engineer:"🚗",synthesizer:"🧩"};
+const AVC=["#6d5dfc","#0ea5e9","#14b8a6","#f59e0b","#ec4899","#84cc16"];
+const $=id=>document.getElementById(id);
+const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const NS="http://www.w3.org/2000/svg";
+const mk=(tag,attrs={},parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent&&parent.appendChild(e);return e};
+
+// ---------------- state ----------------
+let S,ws,scenarios=[],playTimer=null,selected=null;
+const fresh=()=>({msgs:[],agents:[],problem:"",cfg:null,scn:null,backend:null,thinking:new Map(),finished:null,error:null,
+  t0:null,tEnd:null,view:null,tokens:0,status:"idle",lastSeq:0});
+S=fresh();
+const visible=()=>S.view===null?S.msgs:S.msgs.slice(0,S.view);
+const agentIdx=id=>S.agents.findIndex(a=>a.id===id);
+
+// server location (same origin when served by the backend, else localhost:8000 for file://)
+const served=location.protocol.startsWith("http");
+$("server").value=new URLSearchParams(location.search).get("server")||(served?location.origin:"http://127.0.0.1:8000");
+$("legend").innerHTML=Object.entries(COLORS).map(([t,c])=>`<span><i style="background:${c}"></i>${t}</span>`).join("");
+$("gear").onclick=()=>$("adv").classList.toggle("show");
+const base=()=>$("server").value.trim().replace(/\/+$/,"");
+
+// ---------------- graph (own animation engine so nodes glide smoothly) ----------------
+const svg=$("g");
+const defs=mk("defs",{},svg);
+const glow=mk("filter",{id:"glow",x:"-50%",y:"-50%",width:"200%",height:"200%"},defs);
+mk("feGaussianBlur",{stdDeviation:"4",result:"b"},glow);
+const fm=mk("feMerge",{},glow);mk("feMergeNode",{in:"b"},fm);mk("feMergeNode",{in:"SourceGraphic"},fm);
+const gEdges=mk("g",{},svg),gBeams=mk("g",{},svg),gNodes=mk("g",{},svg),gAgents=mk("g",{},svg),gFx=mk("g",{},svg);
+const root={x:0,y:0};
+{const rg=mk("g",{},gEdges);
+ const rh=mk("circle",{r:40,fill:"#7c83ff",opacity:.16,filter:"url(#glow)"},rg);
+ mk("circle",{r:30,fill:"#1b2350",stroke:"#7c83ff","stroke-width":2},rg);
+ const rt=mk("text",{"text-anchor":"middle",y:4,"font-size":11,fill:"#c7d2fe","font-weight":700},rg);rt.textContent="PROBLEM";
+ mk("title",{},rg).textContent="the problem on the blackboard";
+ gEdges.insertBefore(rg,gEdges.firstChild);
+ setInterval(()=>rh.setAttribute("r",40+3*Math.sin(performance.now()/500)),60);}
+const nodes=new Map();     // seq -> {el,edge,x,y,tx,ty,s,ts,born,parent}
+const aEls=new Map();      // agent id -> {el,ring,label,x,y,flash}
+const particles=[];
+const posOf=seq=>seq?(nodes.get(seq)||root):root;
+
+function agentPos(i,n){const a=-Math.PI/2+(2*Math.PI*(i+.5))/n+Math.PI/n*0; // evenly around an ellipse
+  return [Math.cos(a)*410,Math.sin(a)*275]}
+
+function buildAgents(){
+  gAgents.innerHTML="";aEls.clear();
+  S.agents.forEach((a,i)=>{
+    const [x,y]=agentPos(i,S.agents.length),col=AVC[i%AVC.length];
+    const g=mk("g",{},gAgents);
+    const ring=mk("circle",{r:34,fill:"none",stroke:"#a5b4fc","stroke-width":2,"stroke-dasharray":"6 6",opacity:0},g);
+    const halo=mk("circle",{r:30,fill:col,opacity:.18},g);
+    mk("circle",{r:25,fill:col,stroke:"rgba(255,255,255,.4)","stroke-width":1.5},g);
+    const t=mk("text",{"text-anchor":"middle",y:8,"font-size":22},g);t.textContent=ICONS[a.persona]||"🤖";
+    const l=mk("text",{"text-anchor":"middle",y:52,"font-size":12,fill:"#e8edf8","font-weight":700},g);l.textContent=a.id;
+    const sub=mk("text",{"text-anchor":"middle",y:66,"font-size":10,fill:"#8a96b0"},g);sub.textContent=a.title||a.persona;
+    aEls.set(a.id,{el:g,ring,halo,x,y,flash:0,fc:"#fff",rot:0});
+    g.setAttribute("transform",`translate(${x},${y})`);
+  });
+}
+
+function layout(vis){
+  const kids={};vis.forEach(m=>{(kids[m.target_id||0]=kids[m.target_id||0]||[]).push(m)});
+  const leaves=id=>{const k=kids[id]||[];return k.length?k.reduce((n,c)=>n+leaves(c.seq),0):1};
+  let maxD=1;const depth={0:0};vis.forEach(m=>{depth[m.seq]=(depth[m.target_id||0]||0)+1;maxD=Math.max(maxD,depth[m.seq])});
+  const step=Math.max(58,Math.min(125,270/maxD)),pos={0:[0,0]};
+  (function place(id,a0,a1,d){
+    const k=kids[id]||[],tot=k.reduce((n,c)=>n+leaves(c.seq),0);let a=a0;
+    k.forEach(c=>{const w=(a1-a0)*leaves(c.seq)/tot,mid=a+w/2,W=Math.min(w,2.2);
+      pos[c.seq]=[step*d*Math.cos(mid),step*d*Math.sin(mid)];place(c.seq,mid-W/2,mid+W/2,d+1);a+=w})
+  })(0,-Math.PI/2,1.5*Math.PI,1);
+  return pos;
+}
+
+function ensureNode(m,animate){
+  let n=nodes.get(m.seq);
+  if(n)return n;
+  const p=posOf(m.target_id),c=COLORS[m.tag]||"#888";
+  const g=mk("g",{class:"node"},gNodes);
+  const halo=mk("circle",{r:26,fill:c,opacity:.22,filter:"url(#glow)"},g);
+  const body=mk("circle",{r:19,fill:c,stroke:"rgba(255,255,255,.55)","stroke-width":1.5},g);
+  const t=mk("text",{"text-anchor":"middle",y:5,"font-size":14,fill:"#0b1020"},g);t.textContent=m.seq;
+  const lab=mk("text",{"text-anchor":"middle",y:36,"font-size":11.5,fill:"#cbd5e1"},g);lab.textContent=m.agent_id;
+  const edge=mk("line",{class:"edge"},gEdges);
+  edge.style.stroke=c;edge.style.opacity=.55;
+  g.addEventListener("mouseenter",e=>showTip(e,m));g.addEventListener("mousemove",moveTip);g.addEventListener("mouseleave",()=>$("tip").style.display="none");
+  g.addEventListener("click",()=>select(m.seq));
+  n={el:g,body,edge,m,x:p.x,y:p.y,tx:p.x,ty:p.y,s:animate?0:1,ts:1,born:animate?performance.now()+420:0};
+  nodes.set(m.seq,n);return n;
+}
+function showTip(e,m){const t=$("tip");t.innerHTML=`<b>#${m.seq} ${esc(m.agent_id)}</b> <span class="chip" style="background:${COLORS[m.tag]}">${m.tag}</span>${m.target_id?` → #${m.target_id}`:""}<br>${m.prediction?`<b>${esc(m.prediction)}</b><br>`:""}${esc(m.explanation||"")}`;t.style.display="block";moveTip(e)}
+function moveTip(e){const t=$("tip");t.style.left=Math.min(e.clientX+14,innerWidth-320)+"px";t.style.top=(e.clientY+14)+"px"}
+
+function syncGraph(animateNew){
+  const vis=visible(),pos=layout(vis),seqs=new Set(vis.map(m=>m.seq));
+  vis.forEach(m=>{const fresh=!nodes.has(m.seq);const n=ensureNode(m,animateNew&&fresh);const q=pos[m.seq];n.tx=q[0];n.ty=q[1];n.ts=1;
+    if(fresh&&animateNew)spawnParticle(m)});
+  nodes.forEach((n,seq)=>{if(!seqs.has(seq)){n.ts=0;n.gone=true}else n.gone=false});
+  $("empty").style.display=S.msgs.length||S.status==="running"?"none":"grid";
+  $("problem").innerHTML=S.problem?`<b>Problem:</b> ${esc(S.problem)}`:"";
+}
+function spawnParticle(m){const a=aEls.get(m.agent_id);if(!a)return;
+  particles.push({from:[a.x,a.y],to:m.target_id?null:[0,0],target:m.target_id,color:COLORS[m.tag],t0:performance.now(),dur:420});
+  a.flash=performance.now();a.fc=COLORS[m.tag]}
+
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;const k=1-Math.pow(.0009,dt); // frame-rate independent easing
+  nodes.forEach((n,seq)=>{
+    const wait=now<n.born;
+    n.x+=(n.tx-n.x)*k;n.y+=(n.ty-n.y)*k;n.s+=((wait?0:n.ts)-n.s)*Math.min(1,k*1.4);
+    n.el.setAttribute("transform",`translate(${n.x.toFixed(1)},${n.y.toFixed(1)}) scale(${Math.max(n.s,.001).toFixed(3)})`);
+    const p=posOf(n.m.target_id);
+    n.edge.setAttribute("x1",p.x);n.edge.setAttribute("y1",p.y);n.edge.setAttribute("x2",n.x);n.edge.setAttribute("y2",n.y);
+    n.edge.style.opacity=Math.min(.55,n.s*.55);
+    if(n.gone&&n.s<.02){n.el.remove();n.edge.remove();nodes.delete(seq)}
+  });
+  // particles: agent -> the message it answers
+  gFx.innerHTML="";
+  for(let i=particles.length-1;i>=0;i--){const p=particles[i],t=(now-p.t0)/p.dur;
+    if(t>=1){particles.splice(i,1);continue}
+    const to=p.target?[posOf(p.target).x,posOf(p.target).y]:p.to,e=t*t*(3-2*t);
+    const x=p.from[0]+(to[0]-p.from[0])*e,y=p.from[1]+(to[1]-p.from[1])*e;
+    mk("circle",{cx:x,cy:y,r:6,fill:p.color,filter:"url(#glow)"},gFx);
+    mk("circle",{cx:p.from[0]+(to[0]-p.from[0])*Math.max(0,e-.12),cy:p.from[1]+(to[1]-p.from[1])*Math.max(0,e-.12),r:3.5,fill:p.color,opacity:.5},gFx);
+  }
+  // agents: thinking ring + beam to the head, flash on post
+  gBeams.innerHTML="";
+  const live=S.view===null;
+  const head=visible().filter(m=>m.tag==="PROPOSE"||m.tag==="REVISE").pop();
+  aEls.forEach((a,id)=>{
+    const th=live&&S.thinking.has(id);
+    a.rot+=dt*120;a.ring.setAttribute("opacity",th?.95:0);a.ring.setAttribute("transform",`rotate(${a.rot%360})`);
+    const f=Math.max(0,1-(now-a.flash)/700);
+    a.halo.setAttribute("r",30+(th?4*Math.sin(now/180):0)+f*16);a.halo.setAttribute("opacity",.18+f*.5+(th?.15:0));
+    a.halo.setAttribute("fill",f>0.02?a.fc:a.halo.getAttribute("fill"));
+    if(th){const hp=head?posOf(head.seq):root;mk("line",{class:"beam",x1:a.x,y1:a.y,x2:hp.x,y2:hp.y},gBeams)}
+  });
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---------------- panels ----------------
+function stancesAt(vis){const last=vis[vis.length-1];return last?(last.stances||{}):{}}
+function renderAgents(){
+  const vis=visible(),st=stancesAt(vis),live=S.view===null;
+  $("agents").innerHTML=S.agents.map((a,i)=>{
+    const mine=vis.filter(m=>m.agent_id===a.id),th=live&&S.thinking.has(a.id),stance=st[a.id],lm=mine[mine.length-1];
+    const retried=mine.filter(m=>(m.meta?.attempts||1)>1).length;
+    let status=th?`<span class="status t">thinking <span class="dots"><span></span><span></span><span></span></span> <span data-think="${esc(a.id)}"></span></span>`
+      :stance?`<span class="status"><span class="chip" style="background:${COLORS[stance]}">${stance}</span> ${a.id===vis.find(m=>m.tag==="PROPOSE")?.agent_id?"author":""}</span>`
+      :`<span class="status">waiting</span>`;
+    return `<div class="agent ${th?"thinking":""}"><div class="av" style="background:${AVC[i%AVC.length]}33;border:2px solid ${AVC[i%AVC.length]}">${ICONS[a.persona]||"🤖"}</div>
+      <div class="meta"><b>${esc(a.id)}</b><small>${esc(a.title||a.persona)} · prio ${a.priority}</small>${status}
+      <small>${mine.length} msg${mine.length===1?"":"s"}${lm?` · last ${(lm.meta?.latency_s??0).toFixed?.(1)||0}s`:""}${retried?` · <span class="chip retry">${retried} repaired</span>`:""}</small></div></div>`}).join("");
+}
+function renderFeed(){
+  const vis=visible(),feed=$("feed"),atBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<60;
+  feed.innerHTML=vis.map(m=>`<div class="msg ${m.seq>S.lastSeq?"new":""} ${selected===m.seq?"sel":""}" data-seq="${m.seq}" style="--c:${COLORS[m.tag]}">
+    <div class="top"><span class="chip tag" style="background:${COLORS[m.tag]}">${m.tag}</span><b>${esc(m.agent_id)}</b>#${m.seq}${m.target_id?` → #${m.target_id}`:""}
+    <span style="margin-left:auto">${m.meta?.attempts>1?`🔧 ${m.meta.attempts} tries · `:""}${((m.meta?.prompt_tokens||0)+(m.meta?.completion_tokens||0))} tok</span></div>
+    ${m.prediction?`<div class="pred">${esc(m.prediction)}</div>`:""}<div class="why">${esc(m.explanation||"")}</div></div>`).join("")
+    ||`<div style="color:var(--mut);padding:8px">Messages appear here as agents post them.</div>`;
+  feed.querySelectorAll(".msg").forEach(e=>e.onclick=()=>select(+e.dataset.seq));
+  if(S.view===null&&atBottom)feed.scrollTop=feed.scrollHeight;
+  S.lastSeq=Math.max(S.lastSeq,vis.length?vis[vis.length-1].seq:0);
+  if(S.view!==null)S.lastSeq=S.msgs.length;
+}
+function select(seq){selected=selected===seq?null:seq;nodes.forEach((n,s)=>n.body.classList.toggle("sel",s===selected));
+  document.querySelectorAll(".msg").forEach(e=>e.classList.toggle("sel",+e.dataset.seq===selected));
+  const el=document.querySelector(`.msg[data-seq="${selected}"]`);el&&el.scrollIntoView({block:"nearest",behavior:"smooth"})}
+
+function renderMeters(){
+  const vis=visible(),lim=S.cfg?.limits||{max_messages:30,impasse_threshold:4},thr=lim.impasse_threshold;
+  const streak=vis.length?(vis[vis.length-1].negative_streak??0):0;
+  $("m-msgs").textContent=`${vis.length} / ${lim.max_messages}`;
+  $("thr").textContent=thr;$("m-streak").textContent=streak;
+  $("streak").innerHTML=Array.from({length:thr},(_,i)=>`<i class="${i<streak?(streak>=thr-1?"hot":"on"):""}"></i>`).join("");
+  $("m-tok").textContent=(S.finished?S.finished.tokens.total_tokens:vis.reduce((n,m)=>n+(m.meta?.prompt_tokens||0)+(m.meta?.completion_tokens||0),0)).toLocaleString();
+  $("m-fmt").textContent=S.finished?Math.round(S.finished.format.first_try_rate*100)+"%":"–";
+  // banner + vignette
+  const b=$("banner"),v=$("vig"),fin=S.finished,atEnd=S.view===null||S.view>=S.msgs.length;
+  let cls="",html="";
+  if(fin&&atEnd){
+    const r=fin.result;
+    if(r.outcome==="consensus"){cls="good";html=`✅ Consensus · ${r.intelligibility}<small>${esc(r.final_prediction||"")}</small>`}
+    else {cls="dead";html=`🛑 ${r.outcome==="impasse"?"DEADLOCK":"STOPPED"} · ${r.outcome.replace(/_/g," ")}<small>${streak} consecutive objections · this is where the counterfactual rollback (Milestone 3) will kick in</small>`}
+  }else if(S.status==="running"||S.view!==null){
+    if(streak>=thr-1&&streak>0){cls="dead";html=`⚠ Deadlock imminent<small>negative streak ${streak}/${thr}</small>`}
+    else if(streak>=2){cls="warn";html=`Objections piling up<small>negative streak ${streak}/${thr}</small>`}
+  }
+  b.className=cls?cls+" show":"";b.innerHTML=html;
+  v.className=cls==="dead"?"dead":cls==="warn"?"warn":cls==="good"?"good":"";
+  // final card
+  const f=$("final");
+  if(fin){const r=fin.result;f.className="show";f.innerHTML=`<b>Result:</b> ${r.outcome} · <b>${r.intelligibility}</b> · ${r.iterations} messages<br>`+
+    `<span style="color:var(--mut)">${Object.entries(r.tag_counts).map(([t,c])=>`<span style="color:${COLORS[t]}">${t}×${c}</span>`).join("  ")} · ${fin.tokens.total_tokens} tokens / ${fin.tokens.calls} calls</span>`}
+  else f.className="";
+}
+function renderScrub(){
+  const n=S.msgs.length,v=S.view===null?n:S.view;
+  $("range").max=n;$("range").value=v;$("pos").textContent=`${v} / ${n}`;
+  $("ticks").innerHTML=S.msgs.map((m,i)=>`<i style="background:${COLORS[m.tag]};${i>=v?"opacity:.25":""}"></i>`).join("");
+  const live=S.view===null;$("live").className="live "+(live?"on":"off");$("live").textContent=live?(S.status==="running"?"● LIVE":"LATEST"):"↩ GO LIVE";
+  $("first").disabled=$("prev").disabled=v<=0;$("next").disabled=$("last").disabled=v>=n;$("play").disabled=!n;
+}
+function renderPill(){const p=$("pill");const r=S.finished?.result;
+  if(S.error){p.className="pill bad";p.textContent=S.error}
+  else if(S.status==="running"){p.className="pill running";p.textContent="running"}
+  else if(r){const ok=r.outcome==="consensus";p.className="pill "+(ok?"ok":"bad");p.textContent=ok?`consensus · ${r.intelligibility}`:r.outcome.replace(/_/g," ")}
+  else{p.className="pill";p.textContent=S.status}}
+function renderScn(){
+  $("scn").innerHTML=S.scn?`<b>${esc(S.scn.title)}</b>${esc(scenarios.find(s=>s.id===S.scn.id)?.blurb||"")}<br><span style="opacity:.8">backend: ${esc(S.backend?.model||"")}${S.backend?.flaky?" · flaky":""}</span>`
+    :(scenarios.find(s=>s.id===$("scenario").value)?`<b>${esc(scenarios.find(s=>s.id===$("scenario").value).title)}</b>${esc(scenarios.find(s=>s.id===$("scenario").value).blurb)}`:"Pick a scenario and press Start.")}
+function render(animateNew=false){syncGraph(animateNew);renderAgents();renderFeed();renderMeters();renderScrub();renderPill();renderScn()}
+
+// "thinking for 2.3s" counters tick without re-rendering everything
+setInterval(()=>{
+  document.querySelectorAll("[data-think]").forEach(e=>{const t=S.thinking.get(e.dataset.think);if(t)e.textContent=((performance.now()-t)/1000).toFixed(1)+"s"});
+  const t0=S.t0;if(t0)$("m-time").textContent=(((S.tEnd??performance.now())-t0)/1000).toFixed(1)+"s";
+},100);
+
+// ---------------- events ----------------
+function handle(e){
+  switch(e.type){
+    case "counterfactual_started":
+      $("cf").className="on";$("cf").innerHTML=`<h4>⟲ Counterfactual sandbox · ${esc(e.agent_id)}</h4><div class="meta">Live board paused at v${e.version} (negative streak ${e.negative_streak}). Replaying history in an isolated copy…</div>`;break;
+    case "counterfactual_finished":{
+      const r=e.reflection,best=r.best;
+      const tl=r.timelines.map(t=>`<div class="tl${t===best||(best&&t.score===best.score&&t.rollback_seq===best.rollback_seq&&t.alternative.explanation===best.alternative.explanation)?" best":""}">
+        <div class="meta">replace own msg #${t.rollback_seq} with <b>${esc(t.alternative.tag)}</b> → ${esc(t.outcome)} · score ${t.score}</div>
+        ${t.alternative.explanation?`<div class="alt">“${esc(t.alternative.explanation)}”</div>`:""}
+        <div>${t.steps.map(m=>`<span class="chip" style="background:${COLORS[m.tag]}">${esc(m.agent_id)} ${m.tag}</span>`).join("")}</div></div>`).join("");
+      $("cf").className="on";$("cf").innerHTML=`<h4>⟲ Counterfactual sandbox · ${esc(e.agent_id)}</h4>
+        <div class="meta">${r.timelines.length} alternative timelines · ${r.tokens} sandbox tokens · baseline score ${r.baseline_score}</div>${tl}
+        <div class="meta" style="margin-top:6px;color:${e.applied?"#34d399":"#fb923c"}">${e.applied?"✔ best alternative applied to the live board as "+esc(r.delta.tag):"✖ no alternative beat the live board"}</div>`;break;}
+    case "session_started":
+      $("cf").className="";S=fresh();selected=null;S.agents=e.agents;S.problem=e.problem;S.cfg=e;S.scn=e.scenario;S.backend=e.backend;S.status="running";S.t0=performance.now();
+      nodes.forEach(n=>{n.el.remove();n.edge.remove()});nodes.clear();particles.length=0;buildAgents();break;
+    case "message":
+      S.msgs.push({...e.message,stances:e.stances,negative_streak:e.negative_streak,version:e.version});break;
+    case "agent_started":S.thinking.set(e.agent_id,performance.now());break;
+    case "agent_finished":S.thinking.delete(e.agent_id);break;
+    case "session_finished":S.thinking.clear();S.finished=e;S.status="finished";S.tEnd=performance.now();break;
+    case "session_error":S.thinking.clear();S.error="error: "+e.error;S.status="error";S.tEnd=performance.now();break;
+  }
+  render(S.view===null&&e.type==="message");
+}
+
+async function start(){
+  clearInterval(playTimer);playTimer=null;if(ws){ws.onclose=null;ws.close()}
+  $("pill").className="pill";$("pill").textContent="connecting…";
+  const src=$("src").value;
+  const body={scenario:$("scenario").value,backend:{type:src,flaky:$("flaky").checked,speed:+$("speed").value}};
+  if(src==="openai"){body.backend.base_url=$("base").value.trim();body.backend.model=$("model").value.trim()}
+  if($("problem-in").value.trim())body.problem=$("problem-in").value.trim();
+  let sid;
+  try{
+    const r=await fetch(base()+"/api/sessions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error("server replied "+r.status+" "+(await r.text()).slice(0,140));
+    ({session_id:sid}=await r.json());
+  }catch(err){
+    $("pill").className="pill bad";$("pill").textContent="cannot reach server";
+    $("banner").className="warn show";$("banner").innerHTML=`Cannot reach the server<small>${esc(err.message)} · start it with: python scripts/serve.py</small>`;return}
+  ws=new WebSocket(base().replace(/^http/,"ws")+"/ws/"+sid);
+  ws.onmessage=ev=>handle(JSON.parse(ev.data));
+  ws.onerror=()=>{$("pill").className="pill bad";$("pill").textContent="websocket error"};
+  ws.onclose=()=>{if(S.status==="running"){S.status="disconnected";render()}};
+}
+$("start").onclick=start;
+
+// ---------------- scrubber / replay ----------------
+function setView(v){clearInterval(playTimer);playTimer=null;$("play").textContent="▶ Replay";
+  const n=S.msgs.length;v=Math.max(0,Math.min(n,v));S.view=v>=n&&S.status==="running"?null:v;
+  if(S.view!==null&&v>=n)S.view=n;render(false)}
+const cur=()=>S.view===null?S.msgs.length:S.view;
+$("range").oninput=e=>setView(+e.target.value);
+$("first").onclick=()=>setView(0);$("prev").onclick=()=>setView(cur()-1);
+$("next").onclick=()=>setView(cur()+1);$("last").onclick=()=>{S.view=null;clearInterval(playTimer);playTimer=null;$("play").textContent="▶ Replay";render(false)};
+$("live").onclick=()=>{if(S.view!==null){S.view=null;render(false)}};
+$("play").onclick=()=>{
+  if(playTimer){clearInterval(playTimer);playTimer=null;$("play").textContent="▶ Replay";return}
+  let v=cur();if(v>=S.msgs.length)v=0;S.view=v;$("play").textContent="⏸ Pause";
+  const tick=()=>{ if(S.view>=S.msgs.length){clearInterval(playTimer);playTimer=null;$("play").textContent="▶ Replay";S.view=S.status==="running"?null:S.msgs.length;render(false);return}
+    S.view++;render(true)};
+  tick();playTimer=setInterval(tick,1100);
+};
+addEventListener("keydown",e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)&&e.target.type!=="range")return;
+  if(e.key==="ArrowLeft")setView(cur()-1);else if(e.key==="ArrowRight")setView(cur()+1);else if(e.key===" "){e.preventDefault();$("play").click()}});
+
+// ---------------- boot ----------------
+$("scenario").onchange=()=>{if(!S.scn)renderScn()};
+(async()=>{
+  try{
+    scenarios=await (await fetch(base()+"/api/scenarios")).json();
+    $("scenario").innerHTML=scenarios.map(s=>`<option value="${s.id}">${esc(s.title)}</option>`).join("");
+    $("scenario").value=scenarios.some(s=>s.id==="revenue")?"revenue":scenarios[0].id;
+  }catch{
+    $("scenario").innerHTML=`<option value="revenue">Revenue question</option>`;
+    $("pill").className="pill bad";$("pill").textContent="server offline";
+  }
+  const q=new URLSearchParams(location.search);
+  if(q.get("scenario"))$("scenario").value=q.get("scenario");
+  if(q.get("speed"))$("speed").value=q.get("speed");
+  render();
+  if(q.get("autostart"))start();
+})();
+</script>
+</body>
+</html>

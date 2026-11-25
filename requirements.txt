@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+websockets
+httpx
+pytest
+# optional, only for in-process models:
+# transformers
+# torch
+# accelerate
